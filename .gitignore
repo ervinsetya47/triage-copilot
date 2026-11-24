@@ -1,0 +1,9 @@
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+
+# NOTE: .kiro/ must stay tracked — Kiroween requires /.kiro in the repo.
+# Do not add .kiro/ to this file.

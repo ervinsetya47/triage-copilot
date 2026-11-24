@@ -1,0 +1,43 @@
+# Implementation Tasks — Bug Bounty Triage Copilot
+
+- [x] 1. Scaffold the repository layout
+  - [x] 1.1 Create `.kiro/specs/triage-copilot/` (requirements, design, tasks)
+  - [x] 1.2 Create `.kiro/steering/` (product, tech, structure)
+  - [x] 1.3 Create `.kiro/hooks/report-draft-check.json`
+  - [x] 1.4 Create `data/`, `data/fixtures/`, `reports/` directories
+- [x] 2. Write the program data files
+  - [x] 2.1 `data/scopes.json` — Charm, Base Everest, Relay scopes
+  - [x] 2.2 `data/known_issues.json` — KI-24, KI-56, Cantina U19 §3.3.1, PeckShield PVE-001, Sherlock H-1 / #155
+  - [x] 2.3 `data/disclosures.json` — PeckShield PVE-001, Sherlock H-1 / #155, Cantina U19 §3.3.1
+  - [x] 2.4 `data/fixtures/expected.json` — expected verdicts for the 5 fixtures
+- [x] 3. Write the five demo fixtures in `data/fixtures/`
+  - [x] 3.1 `charm-fake-pool.json` — REPORTABLE, Critical-class
+  - [x] 3.2 `everest-finding2.json` — NOT REPORTABLE (intended design + disclosed)
+  - [x] 3.3 `everest-finding3.json` — NOT REPORTABLE (publicly disclosed)
+  - [x] 3.4 `everest-mempool.json` — REPORTABLE, Medium
+  - [x] 3.5 `relay-executor.json` — REPORTABLE, S3/L2
+- [x] 4. Implement the MVP CLI (`triage.py`, Python 3 stdlib only)
+  - [x] 4.1 Ingest and validate finding JSON (required fields, clear errors)
+  - [x] 4.2 Scope check stage against `data/scopes.json`
+  - [x] 4.3 Known-issue cross-check stage against `data/known_issues.json`
+  - [x] 4.4 Public-disclosure cross-check stage against `data/disclosures.json`
+  - [x] 4.5 Rule-based severity suggester
+  - [x] 4.6 Verdict (REPORTABLE / NOT REPORTABLE) with numbered reasons
+  - [x] 4.7 Immunefi-format draft export to `reports/<id>.md` (triage note when NOT REPORTABLE)
+  - [x] 4.8 `--demo` mode: run all 5 fixtures, print summary table, exit 0 only if all match
+- [x] 5. Verify
+  - [x] 5.1 `python3 triage.py --demo` exits 0 with 5/5 matching
+  - [x] 5.2 `python3 triage.py data/fixtures/charm-fake-pool.json` creates `reports/charm-fake-pool.md`
+  - [x] 5.3 All `.kiro/` files are valid (JSON hook parses)
+- [x] 6. Write `README.md` (install/run instructions) and `DEMO_SCRIPT.md` (2–3 minute walkthrough)
+- [x] 7. Web UI (`server.py`, Python 3 stdlib only)
+  - [x] 7.1 Extract `build_report()` from `write_report()` so the server reuses the CLI's report text
+  - [x] 7.2 `server.py`: `GET /` page, `POST /api/triage`, `GET /api/fixtures`, `GET /api/demo`; `PORT`/`HOST` env overrides for hosting
+  - [x] 7.3 Verified: server verdicts match the CLI; server report byte-identical to `reports/relay-executor.md`; `/api/demo` 5/5
+  - [x] 7.4 Minimal `Dockerfile` for hosting the server (Fly.io)
+- [x] 8. GitHub prep
+  - [x] 8.1 `git init`, MIT LICENSE, `.gitignore` (keeps `.kiro/` tracked)
+  - [x] 8.2 README updated (Frankenstein category, web UI, hosting options)
+  - [x] 8.3 Everything committed locally; push left to Val (needs his GitHub auth)
+- [x] 9. Devpost write-ups
+  - [x] 9.1 `KIRO_USE_WRITEUP.md` — how Kiro was used, drawn from the real `.kiro/` files

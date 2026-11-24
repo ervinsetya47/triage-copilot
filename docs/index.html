@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bug Bounty Triage Copilot — Kiroween 2026</title>
+<style>
+  :root { --bg:#0f1115; --panel:#171a21; --line:#2a2f3a; --text:#e8eaf0; --muted:#9aa3b2;
+          --green:#3fb950; --red:#f85149; --amber:#d29922; --accent:#58a6ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:880px; margin:0 auto; padding:32px 20px 64px; }
+  h1 { font-size:28px; margin:0 0 4px; }
+  h2 { font-size:18px; margin:28px 0 8px; }
+  p.sub { color:var(--muted); margin:0 0 20px; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px; }
+  .fixtures { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+  button { background:#21262d; color:var(--text); border:1px solid var(--line); border-radius:8px;
+           padding:8px 14px; font-size:14px; cursor:pointer; }
+  button:hover { border-color:var(--accent); }
+  button.primary { background:var(--accent); color:#04122b; border-color:var(--accent); font-weight:600; }
+  button:disabled { opacity:.5; cursor:default; }
+  textarea { width:100%; min-height:220px; background:#0d1017; color:var(--text);
+             border:1px solid var(--line); border-radius:8px; padding:12px;
+             font:13px/1.5 ui-monospace,Menlo,Consolas,monospace; }
+  pre { background:#0d1017; border:1px solid var(--line); border-radius:8px; padding:12px;
+        white-space:pre-wrap; word-break:break-word; font:13px/1.5 ui-monospace,Menlo,Consolas,monospace; }
+  .verdict { font-size:20px; font-weight:700; padding:10px 14px; border-radius:8px; display:inline-block; }
+  .verdict.ok { background:rgba(63,185,80,.15); color:var(--green); border:1px solid var(--green); }
+  .verdict.no { background:rgba(248,81,73,.12); color:var(--red); border:1px solid var(--red); }
+  .muted { color:var(--muted); font-size:14px; }
+  .steps { margin:12px 0 0; padding-left:0; list-style:none; }
+  .steps li { padding:2px 0; }
+  .steps li b { color:var(--accent); }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .hidden { display:none; }
+  footer { margin-top:36px; color:var(--muted); font-size:13px; }
+  code { background:#0d1017; padding:1px 6px; border-radius:5px; font-size:13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🛡️ Bug Bounty Triage Copilot</h1>
+  <p class="sub">Check a finding <em>before</em> you pay the submission fee: scope, known issues,
+  public disclosures, severity — one verdict, and a report draft if the finding is alive.
+  Deterministic, rule-based, no LLM, no network. A dead finding is a saved fee.
+  Built with Kiro for Kiroween 2026. <strong>The copilot never auto-submits anything.</strong></p>
+
+  <h2>1 · Pick a demo finding — or paste your own</h2>
+  <div class="panel">
+    <div class="fixtures" id="fixtures"></div>
+    <textarea id="input" spellcheck="false" placeholder='{"id": "...", "title": "...", "program": "Charm", "target": "...", "description": "...", "poc_notes": "..."}'></textarea>
+    <div class="row" style="margin-top:12px">
+      <button class="primary" id="run">Run triage</button>
+      <button id="demo">Run all 5 demo fixtures</button>
+      <span class="muted">Required fields: id, title, program, target, description, poc_notes.</span>
+    </div>
+    <p class="muted">Programs with scope rules: Charm, Base Everest, Relay. Same rules as the CLI
+    (<code>triage.py</code>); the data is embedded from <code>data/*.json</code>.</p>
+  </div>
+
+  <div id="result" class="hidden">
+    <h2>2 · Verdict</h2>
+    <div class="panel">
+      <span id="verdict" class="verdict"></span>
+      <span id="severity" class="muted" style="margin-left:10px"></span>
+      <ul class="steps" id="steps"></ul>
+    </div>
+
+    <h2>3 · Report draft</h2>
+    <div class="panel">
+      <pre id="report"></pre>
+      <div class="row" style="margin-top:12px">
+        <button id="copy">Copy report</button>
+        <button id="download">Download .md</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="demoOut" class="hidden">
+    <h2>Demo self-check — expected vs actual</h2>
+    <div class="panel"><table>
+      <thead><tr><th>Fixture</th><th>Expected</th><th>Actual</th><th>Severity</th><th></th></tr></thead>
+      <tbody id="demoRows"></tbody>
+    </table>
+    <p id="demoSummary" class="muted"></p></div>
+  </div>
+
+  <footer>
+    Same pipeline as the CLI — <code>python3 triage.py --demo</code> must agree 5/5 with the
+    table above. Rules live in <code>data/scopes.json</code>, <code>data/known_issues.json</code>
+    and <code>data/disclosures.json</code>; regenerate this page's data with
+    <code>python3 tools/build_web_data.py</code>.
+  </footer>
+</main>
+<script src="triage.js"></script>
+<script src="data.js"></script>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const input = $("input"), resultBox = $("result"), demoBox = $("demoOut");
+
+  // Fixture buttons.
+  Object.keys(TRIAGE_DATA.fixtures).sort().forEach((fid) => {
+    const b = document.createElement("button");
+    b.textContent = fid;
+    b.onclick = () => {
+      input.value = JSON.stringify(TRIAGE_DATA.fixtures[fid], null, 2);
+      runTriage();
+    };
+    $("fixtures").appendChild(b);
+  });
+  // Default: the live Charm finding.
+  input.value = JSON.stringify(TRIAGE_DATA.fixtures["charm-fake-pool"], null, 2);
+
+  let lastReport = "", lastId = "finding";
+
+  function runTriage() {
+    let finding;
+    try { finding = JSON.parse(input.value); }
+    catch (e) { alert("Invalid JSON: " + e.message); return; }
+    const err = validateFinding(finding);
+    if (err) { alert(err); return; }
+    const r = triage(finding, TRIAGE_DATA);
+    const v = $("verdict");
+    v.textContent = "Verdict: " + r.verdict;
+    v.className = "verdict " + (r.verdict === "REPORTABLE" ? "ok" : "no");
+    $("severity").textContent = "Suggested severity: " + r.severity;
+    $("steps").innerHTML = r.steps.map((s) =>
+      "<li>" + s.replace(/</g, "&lt;") + "</li>").join("");
+    lastReport = buildReport(r);
+    lastId = finding.id;
+    $("report").textContent = lastReport;
+    resultBox.classList.remove("hidden");
+    resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  $("run").onclick = runTriage;
+
+  $("demo").onclick = () => {
+    const rows = runDemo(TRIAGE_DATA);
+    $("demoRows").innerHTML = rows.map((r) =>
+      "<tr><td>" + r.id + "</td><td>" + (r.expected.verdict || "?") + "</td><td>" + r.verdict +
+      "</td><td>" + r.severity + "</td><td>" + (r.ok ? "✅ OK" : "❌ MISMATCH") + "</td></tr>").join("");
+    const n = rows.filter((r) => r.ok).length;
+    $("demoSummary").textContent = n + "/" + rows.length + " fixtures match their expected verdicts.";
+    demoBox.classList.remove("hidden");
+    demoBox.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  $("copy").onclick = async () => {
+    try { await navigator.clipboard.writeText(lastReport); $("copy").textContent = "Copied ✓"; }
+    catch (e) { alert("Copy failed — select the text manually."); }
+    setTimeout(() => { $("copy").textContent = "Copy report"; }, 2000);
+  };
+
+  $("download").onclick = () => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([lastReport], { type: "text/markdown" }));
+    a.download = lastId + ".md";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+})();
+</script>
+</body>
+</html>

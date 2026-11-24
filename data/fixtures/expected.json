@@ -1,0 +1,1 @@
+{"charm-fake-pool":{"severity":"Critical-class","verdict":"REPORTABLE"},"everest-finding2":{"severity":"Informational / not reportable","verdict":"NOT REPORTABLE"},"everest-finding3":{"severity":"Medium at most","verdict":"NOT REPORTABLE"},"everest-mempool":{"severity":"Medium","verdict":"REPORTABLE"},"relay-executor":{"severity":"S3/L2 (High-class)","verdict":"REPORTABLE"}}
